@@ -30,7 +30,10 @@ npm install
 Create a `.env.local` file in the root directory:
 
 ```bash
-STREAM_API_KEY=your_stream_api_key
+# Client-side (public)
+NEXT_PUBLIC_STREAM_API_KEY=your_stream_api_key
+
+# Server-side (private)
 STREAM_API_SECRET=your_stream_api_secret
 SYNTHETIC_API_KEY=your_synthetic_api_key
 ```

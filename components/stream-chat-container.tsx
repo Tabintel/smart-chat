@@ -84,10 +84,10 @@ export function StreamChatContainer({ userId, userName }: StreamChatContainerPro
     
     // Create a team channel type which is most common for group chats
     return client.channel("team", channelId, {
-      name: "AI Smart Replies Demo",
       members: [userId],
-      created_by_id: userId
-    })
+      created_by_id: userId,
+      name: "AI Smart Replies"
+    } as const)
   }, [client, channelId, userId])
 
   if (isLoading) {
@@ -133,17 +133,18 @@ export function StreamChatContainer({ userId, userName }: StreamChatContainerPro
   }
 
   return (
-    <Chat client={client} theme="str-chat__theme-dark">
-      <Channel channel={channel}>
-        <Window>
-          <ChannelHeader title="Live Stream Chat" live />
-          <MessageList />
-          {/* Map Stream messages to SmartReplyBar input shape */}
-          <SmartReplyBridge />
-          <MessageInput focus />
-        </Window>
-      </Channel>
-    </Chat>
+    <div className="flex flex-col h-screen bg-gray-100">
+      <Chat client={client} theme="str-chat__theme-light">
+        <Channel channel={channel}>
+          <DiscordChatLayout 
+            userId={userId} 
+            userName={userName} 
+            client={client} 
+            channel={channel} 
+          />
+        </Channel>
+      </Chat>
+    </div>
   )
 }
 

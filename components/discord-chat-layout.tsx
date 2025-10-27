@@ -1,128 +1,100 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
+import { StreamChat } from "stream-chat"
+import { Chat, Channel, MessageList, MessageInput, useChatContext, useChannelStateContext } from "stream-chat-react"
 import { SmartReplyBar } from "./smart-reply-bar"
-
-interface Message {
-  id: string
-  userId: string
-  userName: string
-  text: string
-  timestamp: Date
-  avatar?: string
-}
-
-interface Channel {
-  id: string
-  name: string
-  icon: string
-}
 
 interface DiscordChatLayoutProps {
   userId: string
   userName: string
+  client: StreamChat
+  channel: any // Using any to avoid type issues with Stream's Channel type
 }
 
-export function DiscordChatLayout({ userId, userName }: DiscordChatLayoutProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      userId: "bot",
-      userName: "ChatBot",
-      text: "Welcome to the AI-powered chat! Try sending a message and see intelligent reply suggestions appear.",
-      timestamp: new Date(Date.now() - 60000),
-    },
-    {
-      id: "2",
-      userId: "user1",
-      userName: "ProGamer",
-      text: "Hey everyone! Thanks for joining today!",
-      timestamp: new Date(Date.now() - 45000),
-    },
-    {
-      id: "3",
-      userId: "user2",
-      userName: "ChatMaster",
-      text: "This is awesome! The AI suggestions are really helpful.",
-      timestamp: new Date(Date.now() - 30000),
-    },
-  ])
-  const [inputValue, setInputValue] = useState("")
-  const [selectedChannel, setSelectedChannel] = useState("general")
+// Component to bridge Stream messages to SmartReplyBar
+function MessageBridge() {
+  const { messages = [] } = useChannelStateContext()
+  const { channel } = useChatContext()
+  
+  const handleSelectReply = (reply: string) => {
+    if (channel) {
+      void channel.sendMessage({
+        text: reply,
+      })
+    }
+  }
+
+  // Transform Stream messages to SmartReplyBar format
+  const simplifiedMessages = messages.map((m: any) => ({
+    id: m.id,
+    userId: m.user?.id || '',
+    userName: m.user?.name || m.user?.id || 'User',
+    text: m.text || '',
+    timestamp: m.created_at ? new Date(m.created_at) : new Date(),
+  }))
+
+  return <SmartReplyBar messages={simplifiedMessages} onSelectReply={handleSelectReply} />
+}
+
+export function DiscordChatLayout({ userId, userName, client, channel }: DiscordChatLayoutProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const channels: Channel[] = [
-    { id: "general", name: "general", icon: "#" },
-    { id: "gaming", name: "gaming", icon: "#" },
-    { id: "ai-chat", name: "ai-chat", icon: "🤖" },
-  ]
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
-
+  // Auto-scroll to bottom when messages change
   useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [channel?.state?.messages])
 
-  const handleSendMessage = (text: string) => {
-    if (!text.trim()) return
-
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      userId,
-      userName,
-      text: text.trim(),
-      timestamp: new Date(),
-    }
-
-    setMessages((prev) => [...prev, newMessage])
-    setInputValue("")
-
-    // Simulate a response after a delay
-    setTimeout(() => {
-      const responses = [
-        "That's a great point!",
-        "I totally agree with that.",
-        "Interesting perspective!",
-        "Thanks for sharing!",
-      ]
-      const randomResponse = responses[Math.floor(Math.random() * responses.length)]
-
-      const botMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        userId: "bot",
-        userName: "ChatBot",
-        text: randomResponse,
-        timestamp: new Date(),
-      }
-      setMessages((prev) => [...prev, botMessage])
-    }, 2000)
-  }
-
-  const handleSmartReply = (reply: string) => {
-    handleSendMessage(reply)
-  }
-
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-  }
-
-  const getAvatarColor = (userId: string) => {
-    const colors = ["bg-purple-500", "bg-blue-500", "bg-green-500", "bg-yellow-500", "bg-pink-500", "bg-indigo-500"]
-    const index = userId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length
-    return colors[index]
-  }
-
+  // Use Stream's MessageList and MessageInput components
   return (
-    <div className="flex h-screen bg-[#1e1f22]">
+    <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
-      <div className="w-60 bg-[#2b2d31] flex flex-col">
-        {/* Server Header */}
-        <div className="h-12 px-4 flex items-center border-b border-[#1e1f22] shadow-md">
+      <div className="w-16 bg-gray-900 text-white flex flex-col items-center py-4">
+        <div className="p-2 mb-4">
+          <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center">
+            <span className="text-xl font-bold">S</span>
+          </div>
+        </div>
+        <div className="flex-1 flex flex-col items-center space-y-4">
+          <button className="w-12 h-12 bg-indigo-600 text-white rounded-full flex items-center justify-center hover:bg-indigo-700 transition-colors">
+            <span className="text-xl">#</span>
+          </button>
+          <button className="w-12 h-12 bg-gray-700 text-gray-400 rounded-full flex items-center justify-center hover:bg-gray-600 hover:text-white transition-colors">
+            <span className="text-xl">+</span>
+          </button>
+        </div>
+        <div className="mt-auto">
+          <div className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center">
+            <span className="text-lg">{userName?.charAt(0)?.toUpperCase() || 'U'}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Chat Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Channel Header */}
+        <div className="h-14 border-b border-gray-200 bg-white flex items-center px-4">
+          <div className="flex items-center">
+            <span className="text-gray-500 mr-2">#</span>
+            <h2 className="font-semibold">general</h2>
+          </div>
+        </div>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-4">
+          <MessageList />
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Message Input */}
+        <div className="p-4 border-t border-gray-200 bg-white">
+          <MessageInput />
+          <MessageBridge />
+        </div>
+      </div>
+    </div>
+  )
+}
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
               <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">

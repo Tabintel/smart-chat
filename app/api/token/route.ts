@@ -1,17 +1,17 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { StreamChat } from "stream-chat"
 
-const apiKey = process.env.STREAM_API_KEY
+const apiKey = process.env.NEXT_PUBLIC_STREAM_API_KEY
 const apiSecret = process.env.STREAM_API_SECRET
 
 export async function POST(request: NextRequest) {
   try {
     if (!apiKey || !apiSecret) {
-      console.error("Missing Stream credentials - STREAM_API_KEY or STREAM_API_SECRET not set")
+      console.error("Missing Stream credentials - NEXT_PUBLIC_STREAM_API_KEY or STREAM_API_SECRET not set")
       return NextResponse.json(
         {
           error:
-            "Stream credentials not configured. Please add STREAM_API_KEY and STREAM_API_SECRET environment variables.",
+            "Stream credentials not configured. Please add NEXT_PUBLIC_STREAM_API_KEY and STREAM_API_SECRET environment variables.",
         },
         { status: 500 },
       )
